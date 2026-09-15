@@ -1,4 +1,9 @@
+import sys
+
+
 def main():
+    for arg in sys.argv:
+        print(arg)
     print("Hello from fly-in!")
 
 
