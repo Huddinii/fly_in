@@ -53,6 +53,8 @@ class Parser:
                 if len(elements) > 3 or elements[1].find('-') == -1:
                     self.parsing_error(index, line, "Incorrect format:"
                                        " connection: <n1>-<n2> [metadata]")
+            case _:
+                ...
 
 
 if __name__ == "__main__":
