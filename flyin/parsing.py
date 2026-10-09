@@ -2,12 +2,12 @@ import os
 
 
 class ParsingError(Exception):
-    errors = []
+    errors: list[tuple[int, str, str]] = []
 
-    def __call__(self, line_nr: int, line: str, msg: str):
+    def __call__(self, line_nr: int, line: str, msg: str) -> None:
         self.errors.append((line_nr, line, msg))
 
-    def __str__(self):
+    def __str__(self) -> str:
         out = ""
         for e in self.errors:
             out += f"Error in line {e[0]}:\n{e[1]}{e[2]}\n"
@@ -16,14 +16,14 @@ class ParsingError(Exception):
 
 class Parser:
     parsing_error = ParsingError()
-    out = {}
+    out: dict[str, str] = {}
 
-    def parse_path(self):
+    def parse_path(self) -> None:
         ...
         # for files in os.walk(self.path, topdown=True):
         #     self.files.append(files)
 
-    def parse_file(self, file: str):
+    def parse_file(self, file: str) -> None:
         with open(file) as f:
             line = f.readline()
             index = 0
@@ -55,7 +55,7 @@ class Parser:
         if len(self.parsing_error.errors) > 0:
             raise self.parsing_error
 
-    def parse_line(self, line: str, index: int):
+    def parse_line(self, line: str, index: int) -> None:
         elements = line.strip('\n').split(' ')
         ele_type = elements[0].strip(':')
         match ele_type:
@@ -97,7 +97,8 @@ class Parser:
                     err = "Incorrect format: Single word on line"
                     self.parsing_error(index, line, err)
 
-    def parse_meta(self, metadata: list[str], line: str, index: int):
+    def parse_meta(self, metadata: list[str], line: str,
+                   index: int) -> dict[str, str]:
         allowed = ("zone", "color", "max_drones")
         out = {}
         metadata[0] = metadata[0].strip('[')
@@ -117,6 +118,7 @@ class Parser:
             else:
                 k, v = m.split("=")
                 out.update({k: v})
+        return out
 
 
 if __name__ == "__main__":
