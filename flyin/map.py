@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Optional
+from pydantic import BaseModel
 
 
 class Hub(BaseModel):
@@ -7,7 +7,7 @@ class Hub(BaseModel):
     y: int
     start: bool = False
     end: bool = False
-    color: Optional[str] = None
+    color: str | None = None
     max_drones: int = 1
     zone: str = "normal"
 
@@ -22,3 +22,13 @@ class Map(BaseModel):
     drones: int
     hubs: list[Hub]
     connections: list[Connection]
+
+
+if __name__ == "__main__":
+    obj = {"drones": "4", "hubs":
+           [{"name": "test1",
+             "x": "1",
+             "y": "2"}],
+           "connections": []}
+    map = Map(**obj)
+    print(map)

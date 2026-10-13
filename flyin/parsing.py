@@ -16,7 +16,7 @@ class ParsingError(Exception):
 
 class Parser:
     parsing_error = ParsingError()
-    out: dict[str, str] = {}
+    map: dict[str, str] = {"hubs": [], "connections": []}
 
     def parse_path(self) -> None:
         ...
@@ -63,8 +63,10 @@ class Parser:
                 if len(elements) > 2 or len(elements) < 2:
                     err = "Incorrect format: nb_drones: <x>"
                     self.parsing_error(index, line, err)
-                    {"nb_drones": elements[1]}
+                else:
+                    self.map.update({"nb_drones": elements[1]})
             case "connection":
+                con = {}
                 meta_err = "Incorrect metadata: Duplicate or incorrect Data"
                 format_err = "Incorrect format: connection: <name1>-<name2>" \
                     " [metadata]"
@@ -76,22 +78,45 @@ class Parser:
                 elif len(elements) > 2 and (not elements[2].startswith('[')
                                             or not elements[-1].endswith(']')):
                     self.parsing_error(index, line, format_err)
-                elif len(elements) == 3:
-                    meta = elements[2].strip('[]')
-                    if not meta.startswith("max_link_capacity"):
-                        err = "Invalid metadata:" \
-                            " Only max_link_capacity is allowed"
+                else:
+                    if len(elements) == 3:
+                        meta = elements[2].strip('[]')
+                        if not meta.startswith("max_link_capacity"):
+                            err = "Invalid metadata:" \
+                                " Only max_link_capacity is allowed"
+                            self.parsing_error(index, line, err)
+                        elif meta.find("=") == -1:
+                            err = "Invalid metadata: No Value assigned"
+                            self.parsing_error(index, line, err)
+                        else:
+                            cap = meta.split("=")
+                            con.update({"max_link_capacity": cap})
+                    loc = elements[1].split("-")
+                    if len(loc) > 2:
+                        err = "Incorrect connection: Too many dashes in line"
                         self.parsing_error(index, line, err)
-            case "hub" | "starting_hub" | "end_hub":
+                    else:
+                        con.update({"from": loc[0], "to": loc[1]})
+                        self.map["connections"].append(con)
+            case "hub" | "start_hub" | "end_hub":
+                hub = {}
                 format_err = f"Incorrect format: {elements[0]} <name> <x>" \
-                        " <y> [metadata]"
+                             " <y> [metadata]"
                 if len(elements) > 4 and (not elements[4].startswith('[')
                                           or not elements[-1].endswith(']')):
                     self.parsing_error(index, line, format_err)
                 elif len(elements) < 4:
                     self.parsing_error(index, line, format_err)
-                elif len(elements) > 4:
-                    self.parse_meta(elements[4:], line, index)
+                else:
+                    hub.update({"name": elements[1], "x": elements[2],
+                                "y": elements[3]})
+                    if ele_type.startswith("start"):
+                        hub.update({"start": True})
+                    if ele_type.startswith("end"):
+                        hub.update({"end": True})
+                    if len(elements) > 4:
+                        hub.update(self.parse_meta(elements[4:], line, index))
+                    self.map["hubs"].append(hub)
             case _:
                 if len(elements) == 1 or elements[0].endswith("\n"):
                     err = "Incorrect format: Single word on line"
@@ -126,6 +151,6 @@ if __name__ == "__main__":
     pars.parse_path()
     # print(pars.files)
     try:
-        pars.parse_file("test.txt")
+        pars.parse_file("../maps/easy/01_linear_path.txt")
     except ParsingError as e:
         print(e)
