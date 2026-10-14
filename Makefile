@@ -3,4 +3,4 @@ install:
 	@uv sync
 
 run: install
-	@uv run main.py $(MAP)
+	@uv run fly_in $(MAP)

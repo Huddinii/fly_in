@@ -17,6 +17,7 @@ class ParsingError(Exception):
 class Parser:
     parsing_error = ParsingError()
     map: dict[str, str] = {"hubs": [], "connections": []}
+    success = False
 
     def parse_path(self) -> None:
         ...
@@ -54,6 +55,8 @@ class Parser:
                 line = f.readline()
         if len(self.parsing_error.errors) > 0:
             raise self.parsing_error
+        else:
+            self.success = True
 
     def parse_line(self, line: str, index: int) -> None:
         elements = line.strip('\n').split(' ')
@@ -64,7 +67,7 @@ class Parser:
                     err = "Incorrect format: nb_drones: <x>"
                     self.parsing_error(index, line, err)
                 else:
-                    self.map.update({"nb_drones": elements[1]})
+                    self.map.update({"drones": elements[1]})
             case "connection":
                 con = {}
                 meta_err = "Incorrect metadata: Duplicate or incorrect Data"
@@ -96,7 +99,7 @@ class Parser:
                         err = "Incorrect connection: Too many dashes in line"
                         self.parsing_error(index, line, err)
                     else:
-                        con.update({"from": loc[0], "to": loc[1]})
+                        con.update({"hub_from": loc[0], "hub_to": loc[1]})
                         self.map["connections"].append(con)
             case "hub" | "start_hub" | "end_hub":
                 hub = {}
@@ -144,13 +147,3 @@ class Parser:
                 k, v = m.split("=")
                 out.update({k: v})
         return out
-
-
-if __name__ == "__main__":
-    pars = Parser()
-    pars.parse_path()
-    # print(pars.files)
-    try:
-        pars.parse_file("../maps/easy/01_linear_path.txt")
-    except ParsingError as e:
-        print(e)
