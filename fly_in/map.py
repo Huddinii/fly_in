@@ -36,13 +36,14 @@ class Drone(BaseModel):
     location: str | None = None
     moved: bool = False
     blocked: bool = False
+    clear: bool = False
 
 
 class Map(BaseModel):
     drones: int
     hubs: list[Hub]
     connections: list[Connection]
-    positions: list[Drone]
+    positions: list[Drone] = []
 
     @model_validator(mode='after')
     def map_validator(self) -> "Map":
@@ -52,7 +53,7 @@ class Map(BaseModel):
                     or c.hub_to not in hub_names):
                 raise ValueError(f"Invalid Connection {c}:"
                                  " Trying to connect non existent Hub")
-        start, end = False
+        start, end = False, False
         for h in self.hubs:
             if h.start:
                 start = True
@@ -62,6 +63,69 @@ class Map(BaseModel):
             raise ValueError("There is no Start Hub in the Map")
         if not end:
             raise ValueError("There is no End Hub in the Map")
+        for i in range(len(self.hubs)):
+            x, y = self.hubs[i].x, self.hubs[i].y
+            for j in range(i + 1, len(self.hubs)):
+                if x == self.hubs[j].x and y == self.hubs[j].y:
+                    raise ValueError("Multiple Hubs with same coordinates:"
+                                     f" x = {x}, y = {y}")
         for i in range(1, self.drones + 1):
             self.positions.append({"name": f"d{i}"})
         return self
+
+    def get_start(self) -> str:
+        for h in self.hubs:
+            if h.start:
+                return h.name
+
+    def get_end(self) -> str:
+        for h in self.hubs:
+            if h.end:
+                return h.name
+
+    def get_connections(self, name: str):
+        return [x.hub_to for x in self.connections if x.hub_from == name]
+
+    def is_blocked(self, name: str):
+        for h in self.hubs:
+            if h.name == name:
+                if h.zone == Zone.BLOCKED:
+                    return True
+                return False
+
+
+class Node:
+    parent = None
+
+    def __init__(self, name) -> None:
+        self.name = name
+
+    def check_valid(self, name: str) -> bool:
+        par = self.parent
+        while par is not None:
+            if name == par.name:
+                return False
+            par = par.parent
+        return True
+
+
+class Solver:
+    def __init__(self, map: Map):
+        self.map = map
+        self.solutions = []
+
+    def bfs(self):
+        hubs = []
+        start = Node(self.map.get_start())
+        hubs.append(start)
+        while len(hubs) > 0:
+            hub = hubs[0]
+            hubs.pop(0)
+            if hub.name == self.map.get_end():
+                self.solutions.append(hub)
+            else:
+                for x in self.map.get_connections(hub.name):
+                    if hub.check_valid(x) and not self.map.is_blocked(x):
+                        next = Node(x)
+                        next.parent = hub
+                        hubs.append(next)
