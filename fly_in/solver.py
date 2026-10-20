@@ -17,12 +17,14 @@ class Node:
 
 
 class Solver:
+    solutions = []
+    valid = set()
+    distance = {}
+
     def __init__(self, map: Map):
         self.map = map
-        self.solutions = []
-        self.valid = set()
 
-    def bfs(self):
+    def bfs(self) -> None:
         hubs = []
         start = Node(self.map.get_start())
         hubs.append(start)
@@ -43,28 +45,43 @@ class Solver:
                 s = s.parent
 
     def dijkstra(self):
-        distance = {}
         parent = {}
         q = []
         for h in self.valid:
-            distance.update({h: 999})
+            self.distance.update({h: 999})
             parent.update({h: None})
             q.append(h)
-        distance[self.map.get_start()] = 0
+        self.distance[self.map.get_start()] = 0
         while len(q) > 0:
-            cur = self.get_smallest(distance, q)
+            cur = self.get_smallest(self.distance, q)
             q.remove(cur)
             for hub in self.map.get_connected(cur):
                 if hub in q and self.map.get_zone(hub) is not Zone.BLOCKED:
-                    length = distance[cur] + (2 if self.map.get_zone(hub)
-                                              == Zone.RESTRICTED else 1)
-                    if length < distance[hub]:
-                        distance[hub] = length
+                    z = self.map.get_zone(hub)
+                    match z:
+                        case Zone.RESTRICTED:
+                            dist = 4
+                        case Zone.NORMAL:
+                            dist = 2
+                        case Zone.PRIORITY:
+                            dist = 1
+                    length = self.distance[cur] + dist
+                    if length < self.distance[hub]:
+                        self.distance[hub] = length
                         parent[hub] = cur
-        return parent, distance
+        shortest = []
+        path = self.map.get_end()
+        shortest.append(path)
+        while (p := parent[path]) is not None:
+            shortest.append(p)
+            path = p
+        shortest.reverse()
+        return shortest
 
     def solve(self):
         self.bfs()
+        if len(self.solutions) == 0:
+            raise RuntimeError("No valid Path found")
         return self.dijkstra()
 
     def get_smallest(self, distance: dict[str, int], q: list[str]) -> str:

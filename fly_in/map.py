@@ -31,20 +31,10 @@ class Connection(BaseModel):
         return f"{self.hub_from}-{self.hub_to}"
 
 
-class Drone(BaseModel):
-    name: str
-    location: str
-    finished: bool = False
-    moved: bool = False
-    blocked: bool = False
-    clear: bool = False
-
-
 class Map(BaseModel):
     drones: int
     hubs: list[Hub]
     connections: list[Connection]
-    positions: list[Drone] = []
 
     @model_validator(mode='after')
     def map_validator(self) -> "Map":
@@ -70,9 +60,6 @@ class Map(BaseModel):
                 if x == self.hubs[j].x and y == self.hubs[j].y:
                     raise ValueError("Multiple Hubs with same coordinates:"
                                      f" x = {x}, y = {y}")
-        for i in range(1, self.drones + 1):
-            self.positions.append({"name": f"d{i}",
-                                   "location": self.get_start()})
         return self
 
     def get_start(self) -> str:
