@@ -20,6 +20,7 @@ class Solver:
     solutions = []
     valid = set()
     distance = {}
+    shortest = []
 
     def __init__(self, map: Map):
         self.map = map
@@ -69,14 +70,12 @@ class Solver:
                     if length < self.distance[hub]:
                         self.distance[hub] = length
                         parent[hub] = cur
-        shortest = []
         path = self.map.get_end()
-        shortest.append(path)
+        self.shortest.append(path)
         while (p := parent[path]) is not None:
-            shortest.append(p)
+            self.shortest.append(p)
             path = p
-        shortest.reverse()
-        return shortest
+        self.shortest.reverse()
 
     def solve(self):
         self.bfs()
