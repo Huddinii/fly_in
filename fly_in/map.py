@@ -86,3 +86,13 @@ class Map(BaseModel):
         for hub in self.hubs:
             if hub.name == name:
                 return hub.zone
+
+    def get_hub(self, name: str):
+        for hub in self.hubs:
+            if hub.name == name:
+                return hub
+
+    def get_connection(self, hub_from: str, hub_to: str):
+        for c in self.connections:
+            if c.hub_from == hub_from and c.hub_to == hub_to:
+                return c
