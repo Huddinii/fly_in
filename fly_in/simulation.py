@@ -2,6 +2,7 @@ from solver import Solver
 from map import Map, Hub, Connection, Zone
 from parsing import Parser, ParsingError
 from pydantic import ValidationError
+from time import sleep
 
 
 class Drone:
@@ -17,7 +18,7 @@ class Drone:
         self.location = location
 
     def set_valid(self, valid: set[str]) -> None:
-        self.valid = self.valid + valid
+        self.valid = self.valid | valid
 
     def set_distance(self, distance: dict[str, int]) -> None:
         self.distance = distance
@@ -27,20 +28,21 @@ class Drone:
             return False
         return True
 
-    def move(self, map: Map) -> None:
+    def move(self, map: Map) -> bool:
         if self.traveling:
             self.traveling = False
             self.location.used -= 1
             self.location = map.get_hub(self.location.hub_to)
             self.location.drones += 1
             self.moved = True
-            return
+            return True
         cons = [x for x in map.get_connected(self.location.name)
                 if x in self.valid]
         forward = [x for x in cons if self.distance[x] >
                    self.distance[self.location.name]]
-        while len(forward) > 0:
-            next = min(self.distance, key=self.distance.get)
+        if len(forward) > 0:
+            next = min({k: v for (k, v) in self.distance.items()
+                        if k in forward}, key=self.distance.get)
             hub = map.get_hub(next)
             if hub.zone != Zone.RESTRICTED:
                 space = False
@@ -51,13 +53,16 @@ class Drone:
                 if con.used < con.capacity:
                     capacity = True
                 if space and capacity:
+                    if hub.name == map.get_end():
+                        self.clear = True
                     con.used += 1
                     self.location.drones -= 1
                     hub.drones += 1
                     self.location = hub
                     self.moved = True
-                    return
+                    return True
         self.blocked = True
+        return False
 
 
 class Game:
@@ -66,7 +71,7 @@ class Game:
 
     def load_map(self):
         try:
-            self.pars.parse_file("maps/hard/03_ultimate_challenge.txt")
+            self.pars.parse_file("maps/easy/02_simple_fork.txt")
             # maps/easy/02_simple_fork.txt
             # maps/hard/03_ultimate_challenge.txt
             map = Map(**self.pars.map)
@@ -86,7 +91,6 @@ class Game:
             valid = self.solver.valid
             sim = Simulation(map, path, dist, valid)
             sim.start()
-            print(path)
 
 
 class Simulation:
@@ -106,16 +110,17 @@ class Simulation:
         for d in self.drones:
             d.set_valid(self.valid)
             d.set_distance(self.distance)
-        while self.map_completed():
+        while not self.map_completed():
             self.turn()
         print(f"Turns: {self.turns}")
 
     def turn(self):
         self.turns += 1
-        while not self.turn_completed():
-            d = self.drones[self.get_farthest()]
-            d.move(self.map)
-            print(f"{d.name}-{d.location}", end='')
+        d = self.get_farthest()
+        while d is not None:
+            if d.move(self.map):
+                print(f"{d.name}-{d.location.name}", end=' ')
+            d = self.get_farthest()
         self.turn_reset()
         print()
 
@@ -123,6 +128,8 @@ class Simulation:
         for d in self.drones:
             d.moved = False
             d.blocked = False
+        for c in self.map.connections:
+            c.used = 0
 
     def map_completed(self):
         for d in self.drones:
@@ -137,17 +144,12 @@ class Simulation:
         return True
 
     def get_farthest(self) -> int:
-        i = 0
-        drone = self.drones[i]
-        while drone.moved:
-            i += 1
-            drone = self.drones[i]
-        dist = self.distance[drone.location]
+        dist = -1
+        drone = None
         for d in self.drones:
             if d.blocked or d.moved or d.clear:
                 continue
-            if ((new := self.distance[d.location]) > dist and
-                    d.check_available(self.map)):
+            if ((new := self.distance[d.location.name]) > dist):
                 drone = d
                 dist = new
-        return self.drones.index(drone)
+        return drone

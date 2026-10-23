@@ -1,5 +1,6 @@
 from pydantic import BaseModel, model_validator, Field
 from enum import Enum
+from typing import Any
 
 
 class Zone(Enum):
@@ -26,6 +27,7 @@ class Connection(BaseModel):
     hub_to: str
     capacity: int = 1
     used: int = 0
+    traveling: list[Any] = []
 
     def __str__(self) -> str:
         return f"{self.hub_from}-{self.hub_to}"
@@ -48,8 +50,11 @@ class Map(BaseModel):
         for h in self.hubs:
             if h.start:
                 start = True
+                h.max_drones = self.drones
+                h.drones = self.drones
             if h.end:
                 end = True
+                h.max_drones = self.drones
         if not start:
             raise ValueError("There is no Start Hub in the Map")
         if not end:
@@ -65,7 +70,7 @@ class Map(BaseModel):
     def get_start(self) -> str:
         for h in self.hubs:
             if h.start:
-                return h.name
+                return h
 
     def get_end(self) -> str:
         for h in self.hubs:

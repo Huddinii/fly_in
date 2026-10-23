@@ -27,7 +27,7 @@ class Solver:
 
     def bfs(self) -> None:
         hubs = []
-        start = Node(self.map.get_start())
+        start = Node(self.map.get_start().name)
         hubs.append(start)
         while len(hubs) > 0:
             hub = hubs[0]
@@ -52,7 +52,7 @@ class Solver:
             self.distance.update({h: 999})
             parent.update({h: None})
             q.append(h)
-        self.distance[self.map.get_start()] = 0
+        self.distance[self.map.get_start().name] = 0
         while len(q) > 0:
             cur = self.get_smallest(self.distance, q)
             q.remove(cur)

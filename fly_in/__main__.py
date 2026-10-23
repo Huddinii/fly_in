@@ -1,3 +1,3 @@
-from simulation import Simulation
+from simulation import Game
 
-Simulation().simulate()
+Game().load_map()
