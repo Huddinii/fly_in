@@ -92,8 +92,8 @@ class Parser:
                             err = "Invalid metadata: No Value assigned"
                             self.parsing_error(index, line, err)
                         else:
-                            cap = meta.split("=")
-                            con.update({"max_link_capacity": cap})
+                            cap = meta.split("=")[1]
+                            con.update({"capacity": cap})
                     loc = elements[1].split("-")
                     if len(loc) > 2:
                         err = "Incorrect connection: Too many dashes in line"

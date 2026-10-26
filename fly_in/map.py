@@ -21,6 +21,9 @@ class Hub(BaseModel):
     zone: Zone = Zone.NORMAL
     drones: int = 0
 
+    def get_name(self) -> str:
+        return self.name
+
 
 class Connection(BaseModel):
     hub_from: str
@@ -29,8 +32,8 @@ class Connection(BaseModel):
     used: int = 0
     traveling: list[Any] = []
 
-    def __str__(self) -> str:
-        return f"{self.hub_from}-{self.hub_to}"
+    def get_name(self) -> str:
+        return f"Con_{self.hub_from}-{self.hub_to}"
 
 
 class Map(BaseModel):
@@ -41,6 +44,8 @@ class Map(BaseModel):
     @model_validator(mode='after')
     def map_validator(self) -> "Map":
         hub_names = [x.name for x in self.hubs]
+        if len(hub_names) != len(set(hub_names)):
+            raise ValueError("Invalid Hub: Multiple Hubs with same Name")
         for c in self.connections:
             if (c.hub_from not in hub_names
                     or c.hub_to not in hub_names):
@@ -101,3 +106,12 @@ class Map(BaseModel):
         for c in self.connections:
             if c.hub_from == hub_from and c.hub_to == hub_to:
                 return c
+
+    def has_space(self, hub: Hub):
+        cons = [x for x in self.connections if x.hub_to == hub.name]
+        traveling = 0
+        for c in cons:
+            traveling += len(c.traveling)
+        if traveling < hub.max_drones:
+            return True
+        return False

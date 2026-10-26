@@ -61,9 +61,9 @@ class Solver:
                     z = self.map.get_zone(hub)
                     match z:
                         case Zone.RESTRICTED:
-                            dist = 4
+                            dist = 5
                         case Zone.NORMAL:
-                            dist = 2
+                            dist = 3
                         case Zone.PRIORITY:
                             dist = 1
                     length = self.distance[cur] + dist
