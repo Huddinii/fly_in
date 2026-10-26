@@ -2,7 +2,8 @@ import os
 
 
 class ParsingError(Exception):
-    errors: list[tuple[int, str, str]] = []
+    def __init__(self) -> None:
+        self.errors: list[tuple[int, str, str]] = []
 
     def __call__(self, line_nr: int, line: str, msg: str) -> None:
         self.errors.append((line_nr, line, msg))
@@ -15,9 +16,10 @@ class ParsingError(Exception):
 
 
 class Parser:
-    parsing_error = ParsingError()
-    map: dict[str, str] = {"hubs": [], "connections": []}
-    success = False
+    def __init__(self) -> None:
+        self.parsing_error = ParsingError()
+        self.map: dict[str, str] = {"hubs": [], "connections": []}
+        self.success = False
 
     def parse_path(self) -> None:
         ...

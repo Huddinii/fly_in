@@ -10,12 +10,12 @@ class Drone:
     blocked: bool = False
     traveling: bool = False
     clear: bool = False
-    valid: set[str] = set()
-    distance: dict[str, int]
 
     def __init__(self, name: str, location: Hub | Connection) -> None:
         self.name = name
         self.location = location
+        self.valid: set[str] = set()
+        self.distance: dict[str, int]
 
     def set_valid(self, valid: set[str]) -> None:
         self.valid = self.valid | valid
@@ -44,17 +44,15 @@ class Drone:
             return True
         cons = [x for x in map.get_connected(self.location.name)
                 if x in self.valid]
-        forward = [x for x in cons if self.distance[x] >=
-                   self.distance[self.location.name]]
-        while len(forward) > 0:
+        while len(cons) > 0:
             next = None
-            for h in forward:
+            for h in cons:
                 if h in self.shortest:
                     next = h
                     break
             if next is None:
                 next = min({k: v for (k, v) in self.distance.items()
-                           if k in forward}, key=self.distance.get)
+                           if k in cons}, key=self.distance.get)
             hub = map.get_hub(next)
             if hub.zone != Zone.RESTRICTED:
                 space = False
@@ -87,22 +85,19 @@ class Drone:
                     self.moved = True
                     self.traveling = True
                     return True
-            forward.remove(next)
+            cons.remove(next)
         self.blocked = True
         return False
 
 
 class Game:
-    pars = Parser()
-    solver = None
+    def __init__(self):
+        self.pars = Parser()
+        self.solver = None
 
-    def load_map(self):
+    def load_map(self, map: str):
         try:
-            self.pars.parse_file("maps/hard/03_ultimate_challenge.txt")
-            # maps/easy/01_linear_path.txt
-            # maps/easy/02_simple_fork.txt
-            # maps/hard/03_ultimate_challenge.txt
-            # maps/challenger/01_the_impossible_dream.txt
+            self.pars.parse_file(map)
             map = Map(**self.pars.map)
             self.solver = Solver(map)
             self.solver.solve()
@@ -113,8 +108,8 @@ class Game:
             print(e)
         except ValidationError as e:
             print(e)
-        except RuntimeError as e:
-            print(e)
+        # except RuntimeError as e:
+        #     print(e)
         else:
             dist = self.solver.distance
             valid = self.solver.valid
@@ -123,18 +118,15 @@ class Game:
 
 
 class Simulation:
-    drones: list[Drone]
     turns: int = 0
 
     def __init__(self, map: Map, shortest: list[str],
                  distance: dict[str, int], valid: set[str]):
+        self.drones: list[Drone]
         self.map = map
         self.shortest = shortest
         self.distance = distance
         self.valid = valid
-        print(shortest)
-        print(valid)
-        print(distance)
 
     def start(self):
         self.drones = [Drone(f"D{x}", self.map.get_start())
@@ -145,7 +137,6 @@ class Simulation:
             d.set_shortest(self.shortest)
         while not self.map_completed():
             self.turn()
-            sleep(1)
         print(f"\nTurns: {self.turns}")
 
     def turn(self):

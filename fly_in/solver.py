@@ -17,13 +17,13 @@ class Node:
 
 
 class Solver:
-    solutions = []
-    valid = set()
-    distance = {}
-    shortest = []
 
     def __init__(self, map: Map):
         self.map = map
+        self.solutions = []
+        self.valid = set()
+        self.distance = {}
+        self.shortest = []
 
     def bfs(self) -> None:
         hubs = []
