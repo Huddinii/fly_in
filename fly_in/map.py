@@ -16,7 +16,7 @@ class Hub(BaseModel):
     y: int
     start: bool = False
     end: bool = False
-    color: str | None = None
+    color: str | None = Field(default=None, pattern=r"^[a-zA-Z]+$")
     max_drones: int = 1
     zone: Zone = Zone.NORMAL
     drones: int = 0
