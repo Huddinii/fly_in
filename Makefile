@@ -3,4 +3,4 @@ install:
 	@uv sync
 
 run: install
-	@uv run fly_in $(MAP)
+	@uv run -m fly_in $(MAP)

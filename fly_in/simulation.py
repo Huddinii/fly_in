@@ -1,8 +1,8 @@
-from solver import Solver
-from map import Map, Hub, Connection, Zone
-from parsing import Parser, ParsingError
+from .solver import Solver
+from .map import Map, Zone
+from .parsing import Parser, ParsingError
 from pydantic import ValidationError
-from time import sleep
+from typing import Any
 
 
 class Drone:
@@ -11,7 +11,7 @@ class Drone:
     traveling: bool = False
     clear: bool = False
 
-    def __init__(self, name: str, location: Hub | Connection) -> None:
+    def __init__(self, name: str, location: Any) -> None:
         self.name = name
         self.location = location
         self.valid: set[str] = set()
@@ -38,7 +38,7 @@ class Drone:
             self.location.traveling.remove(self)
             self.location = map.get_hub(self.location.hub_to)
             self.location.drones += 1
-            if self.location.name == map.get_end():
+            if self.location.name == map.get_end().name:
                 self.clear = True
             self.moved = True
             return True
@@ -52,7 +52,8 @@ class Drone:
                     break
             if next is None:
                 next = min({k: v for (k, v) in self.distance.items()
-                           if k in cons}, key=self.distance.get)
+                            if k in cons},
+                           key=lambda name: self.distance[name])
             hub = map.get_hub(next)
             if hub.zone != Zone.RESTRICTED:
                 space = False
@@ -63,7 +64,7 @@ class Drone:
                 if con.used < con.capacity:
                     capacity = True
                 if space and capacity:
-                    if hub.name == map.get_end():
+                    if hub.name == map.get_end().name:
                         self.clear = True
                     con.used += 1
                     self.location.drones -= 1
@@ -91,13 +92,13 @@ class Drone:
 
 
 class Game:
-    def __init__(self):
-        self.pars = Parser()
-        self.solver = None
+    def __init__(self) -> None:
+        self.pars: Parser = Parser()
+        self.solver: Any = None
 
-    def load_map(self, map: str):
+    def load_map(self, file: str) -> None:
         try:
-            self.pars.parse_file(map)
+            self.pars.parse_file(file)
             map = Map(**self.pars.map)
             self.solver = Solver(map)
             self.solver.solve()
@@ -121,14 +122,14 @@ class Simulation:
     turns: int = 0
 
     def __init__(self, map: Map, shortest: list[str],
-                 distance: dict[str, int], valid: set[str]):
+                 distance: dict[str, int], valid: set[str]) -> None:
         self.drones: list[Drone]
         self.map = map
         self.shortest = shortest
         self.distance = distance
         self.valid = valid
 
-    def start(self):
+    def start(self) -> None:
         self.drones = [Drone(f"D{x}", self.map.get_start())
                        for x in range(1, self.map.drones + 1)]
         for d in self.drones:
@@ -139,7 +140,7 @@ class Simulation:
             self.turn()
         print(f"\nTurns: {self.turns}")
 
-    def turn(self):
+    def turn(self) -> None:
         self.turns += 1
         d = self.get_farthest()
         while d is not None:
@@ -149,26 +150,26 @@ class Simulation:
         self.turn_reset()
         print()
 
-    def turn_reset(self):
+    def turn_reset(self) -> None:
         for d in self.drones:
             d.moved = False
             d.blocked = False
         for c in self.map.connections:
             c.used = 0
 
-    def map_completed(self):
+    def map_completed(self) -> bool:
         for d in self.drones:
             if d.clear is False:
                 return False
         return True
 
-    def turn_completed(self):
+    def turn_completed(self) -> bool:
         for d in self.drones:
             if d.moved is False:
                 return False
         return True
 
-    def get_farthest(self) -> int:
+    def get_farthest(self) -> Drone | None:
         dist = -1
         drone = None
         for d in self.drones:

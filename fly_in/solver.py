@@ -1,10 +1,11 @@
-from map import Map, Zone
+from .map import Map, Zone
+from typing import Any
 
 
 class Node:
-    parent = None
+    parent: Any = None
 
-    def __init__(self, name) -> None:
+    def __init__(self, name: str) -> None:
         self.name = name
 
     def check_valid(self, name: str) -> bool:
@@ -18,12 +19,12 @@ class Node:
 
 class Solver:
 
-    def __init__(self, map: Map):
+    def __init__(self, map: Map) -> None:
         self.map = map
-        self.solutions = []
-        self.valid = set()
-        self.distance = {}
-        self.shortest = []
+        self.solutions: list[Node] = []
+        self.valid: set[str] = set()
+        self.distance: dict[str, int] = {}
+        self.shortest: list[str] = []
 
     def bfs(self) -> None:
         hubs = []
@@ -32,7 +33,7 @@ class Solver:
         while len(hubs) > 0:
             hub = hubs[0]
             hubs.pop(0)
-            if hub.name == self.map.get_end():
+            if hub.name == self.map.get_end().name:
                 self.solutions.append(hub)
             else:
                 for x in self.map.get_connected(hub.name):
@@ -45,8 +46,8 @@ class Solver:
                 self.valid.add(s.name)
                 s = s.parent
 
-    def dijkstra(self):
-        parent = {}
+    def dijkstra(self) -> None:
+        parent: dict[str, str | None] = {}
         q = []
         for h in self.valid:
             self.distance.update({h: 999})
@@ -70,21 +71,21 @@ class Solver:
                     if length < self.distance[hub]:
                         self.distance[hub] = length
                         parent[hub] = cur
-        path = self.map.get_end()
+        path = self.map.get_end().name
         self.shortest.append(path)
         while (p := parent[path]) is not None:
             self.shortest.append(p)
             path = p
         self.shortest.reverse()
 
-    def solve(self):
+    def solve(self) -> None:
         self.bfs()
         if len(self.solutions) == 0:
             raise RuntimeError("No valid Path found")
-        return self.dijkstra()
+        self.dijkstra()
 
     def get_smallest(self, distance: dict[str, int], q: list[str]) -> str:
-        smallest = max(distance, key=distance.get)
+        smallest = max(distance, key=lambda name: distance[name])
         for name in q:
             if distance[name] < distance[smallest]:
                 smallest = name

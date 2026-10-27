@@ -1,7 +1,7 @@
-from simulation import Game
+from .simulation import Game
 
 
-def run_map(map: str):
+def run_map(map: str) -> None:
     game = Game()
     game.load_map(map)
 

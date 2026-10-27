@@ -1,4 +1,5 @@
 import os
+from typing import Any
 
 
 class ParsingError(Exception):
@@ -18,7 +19,7 @@ class ParsingError(Exception):
 class Parser:
     def __init__(self) -> None:
         self.parsing_error = ParsingError()
-        self.map: dict[str, str] = {"hubs": [], "connections": []}
+        self.map: dict[str, Any] = {"hubs": [], "connections": []}
         self.success = False
 
     def parse_path(self) -> None:
@@ -104,7 +105,7 @@ class Parser:
                         con.update({"hub_from": loc[0], "hub_to": loc[1]})
                         self.map["connections"].append(con)
             case "hub" | "start_hub" | "end_hub":
-                hub = {}
+                hub: dict[str, Any] = {}
                 format_err = f"Incorrect format: {elements[0]} <name> <x>" \
                              " <y> [metadata]"
                 if len(elements) > 4 and (not elements[4].startswith('[')

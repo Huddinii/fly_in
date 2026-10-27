@@ -72,42 +72,33 @@ class Map(BaseModel):
                                      f" x = {x}, y = {y}")
         return self
 
-    def get_start(self) -> str:
-        for h in self.hubs:
-            if h.start:
-                return h
+    def get_start(self) -> Hub:
+        return [h for h in self.hubs if h.start][0]
 
-    def get_end(self) -> str:
-        for h in self.hubs:
-            if h.end:
-                return h.name
+    def get_end(self) -> Hub:
+        return [h for h in self.hubs if h.end][0]
 
-    def get_connected(self, name: str):
+    def get_connected(self, name: str) -> list[str]:
         return [x.hub_to for x in self.connections if x.hub_from == name]
 
-    def is_blocked(self, name: str):
+    def is_blocked(self, name: str) -> bool:
         for h in self.hubs:
             if h.name == name:
                 if h.zone == Zone.BLOCKED:
                     return True
-                return False
+        return False
 
-    def get_zone(self, name: str):
-        for hub in self.hubs:
-            if hub.name == name:
-                return hub.zone
+    def get_zone(self, name: str) -> Zone:
+        return [h.zone for h in self.hubs if h.name == name][0]
 
-    def get_hub(self, name: str):
-        for hub in self.hubs:
-            if hub.name == name:
-                return hub
+    def get_hub(self, name: str) -> Hub:
+        return [h for h in self.hubs if h.name == name][0]
 
-    def get_connection(self, hub_from: str, hub_to: str):
-        for c in self.connections:
-            if c.hub_from == hub_from and c.hub_to == hub_to:
-                return c
+    def get_connection(self, hub_from: str, hub_to: str) -> Connection:
+        return [c for c in self.connections
+                if c.hub_from == hub_from and c.hub_to == hub_to][0]
 
-    def has_space(self, hub: Hub):
+    def has_space(self, hub: Hub) -> bool:
         cons = [x for x in self.connections if x.hub_to == hub.name]
         traveling = 0
         for c in cons:
