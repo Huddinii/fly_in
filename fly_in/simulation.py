@@ -1,7 +1,4 @@
-from .solver import Solver
 from .map import Map, Zone
-from .parsing import Parser, ParsingError
-from pydantic import ValidationError
 from typing import Any
 
 
@@ -91,51 +88,21 @@ class Drone:
         return False
 
 
-class Game:
-    def __init__(self) -> None:
-        self.pars: Parser = Parser()
-        self.solver: Any = None
-
-    def load_map(self, file: str) -> None:
-        try:
-            self.pars.parse_file(file)
-            map = Map(**self.pars.map)
-            self.solver = Solver(map)
-            self.solver.solve()
-            path = self.solver.shortest
-        except ParsingError as e:
-            print(e)
-        except ValueError as e:
-            print(e)
-        except ValidationError as e:
-            print(e)
-        # except RuntimeError as e:
-        #     print(e)
-        else:
-            dist = self.solver.distance
-            valid = self.solver.valid
-            sim = Simulation(map, path, dist, valid)
-            sim.start()
-
-
 class Simulation:
     turns: int = 0
 
     def __init__(self, map: Map, shortest: list[str],
                  distance: dict[str, int], valid: set[str]) -> None:
-        self.drones: list[Drone]
+        self.drones = [Drone(f"D{x}", map.get_start())
+                       for x in range(1, map.drones + 1)]
         self.map = map
-        self.shortest = shortest
         self.distance = distance
-        self.valid = valid
+        for d in self.drones:
+            d.set_valid(set(valid))
+            d.set_distance(self.distance)
+            d.set_shortest(shortest)
 
     def start(self) -> None:
-        self.drones = [Drone(f"D{x}", self.map.get_start())
-                       for x in range(1, self.map.drones + 1)]
-        for d in self.drones:
-            d.set_valid(set(self.valid))
-            d.set_distance(self.distance)
-            d.set_shortest(self.shortest)
         while not self.map_completed():
             self.turn()
         print(f"\nTurns: {self.turns}")

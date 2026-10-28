@@ -1,10 +1,4 @@
-from .simulation import Game
-
-
-def run_map(map: str) -> None:
-    game = Game()
-    game.load_map(map)
-
+from .game import Game
 
 maps = [
         "maps/easy/01_linear_path.txt",
@@ -20,5 +14,9 @@ maps = [
         ]
 
 for m in maps:
-    print(m.split('/')[2], '\n')
-    run_map(m)
+    # print(m.split('/')[2], '\n')
+    ...
+
+game = Game()
+# game.start_game()
+game.load_map(maps[7])
