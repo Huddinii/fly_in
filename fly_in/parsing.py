@@ -22,10 +22,15 @@ class Parser:
         self.map: dict[str, Any] = {"hubs": [], "connections": []}
         self.success = False
 
-    def parse_path(self) -> None:
-        ...
-        # for files in os.walk(self.path, topdown=True):
-        #     self.files.append(files)
+    def get_dificulty(self) -> list[str]:
+        out = [d for _, d, _ in os.walk("maps")][0]
+        out.sort()
+        return out
+
+    def get_maps(self, dif: str) -> list[str]:
+        out = [f for _, _, f in os.walk("maps/" + dif)][0]
+        out.sort()
+        return out
 
     def parse_file(self, file: str) -> None:
         with open(file) as f:

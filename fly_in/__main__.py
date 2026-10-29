@@ -18,5 +18,5 @@ for m in maps:
     ...
 
 game = Game()
-# game.start_game()
-game.load_map(maps[7])
+game.start_game()
+# game.load_map(maps[7])

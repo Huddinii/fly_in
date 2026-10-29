@@ -60,6 +60,8 @@ class Map(BaseModel):
             if h.end:
                 end = True
                 h.max_drones = self.drones
+            if h.color is not None:
+                h.color = h.color.lower()
         if not start:
             raise ValueError("There is no Start Hub in the Map")
         if not end:

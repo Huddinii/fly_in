@@ -20,23 +20,30 @@ class Game:
         screen = pygame.display.set_mode((1920, 1080))
 
         bg = pygame.image.load("assets/Space_Background2.png").convert()
-        try:
-            open("assets/Space_Background2.png")
-        except FileNotFoundError:
-            print("err")
 
         pygame.display.set_caption("Fly In")
 
         running = True
+        i = 0
         while running:
+            i += 1
             # screen.fill((255, 255, 255))
             screen.blit(bg, (0, 0))
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
             clock.tick(60)
+            if i % 60 == 0:
+                print("run")
+                i = 0
             pygame.display.flip()
         pygame.quit()
+
+    def run_sim(self, sim) -> None:
+        ...
+
+    def show_instructions(self) -> None:
+        ...
 
     def load_map(self, file: str) -> None:
         try:
