@@ -18,22 +18,22 @@ class ParsingError(Exception):
 
 class Parser:
     def __init__(self) -> None:
+        self.parsing_error: Any = None
+
+    def get_dificulty(self) -> tuple[str, list[str]]:
+        out = [(s, d) for s, d, _ in os.walk("maps")][0]
+        out[1].sort()
+        return out
+
+    def get_maps(self, dif: str) -> tuple[str, list[str]]:
+        out = [(s, f) for s, _, f in os.walk(dif)][0]
+        out[1].sort()
+        return out
+
+    def parse_file(self, file: str) -> dict[str, Any]:
         self.parsing_error = ParsingError()
-        self.map: dict[str, Any] = {"hubs": [], "connections": []}
-        self.success = False
-
-    def get_dificulty(self) -> list[str]:
-        out = [d for _, d, _ in os.walk("maps")][0]
-        out.sort()
-        return out
-
-    def get_maps(self, dif: str) -> list[str]:
-        out = [f for _, _, f in os.walk("maps/" + dif)][0]
-        out.sort()
-        return out
-
-    def parse_file(self, file: str) -> None:
         with open(file) as f:
+            map: dict[str, Any] = {"hubs": [], "connections": []}
             line = f.readline()
             index = 0
             start = False
@@ -43,19 +43,19 @@ class Parser:
                 if line.startswith("start_hub:"):
                     if not start:
                         start = True
-                        self.parse_line(line, index)
+                        map = self.parse_line(line, index, map)
                     else:
                         err = "Multiple start_hubs not allowed"
                         self.parsing_error(index, line, err)
                 elif line.startswith("end_hub:"):
                     if not end:
                         end = True
-                        self.parse_line(line, index)
+                        map = self.parse_line(line, index, map)
                     else:
                         err = "Multiple end_hubs not allowed"
                         self.parsing_error(index, line, err)
                 elif line.startswith(("nb_drones:", "hub:", "connection:")):
-                    self.parse_line(line, index)
+                    map = self.parse_line(line, index, map)
                 elif line.startswith(("#", "\n")):
                     ...
                 else:
@@ -64,9 +64,10 @@ class Parser:
         if len(self.parsing_error.errors) > 0:
             raise self.parsing_error
         else:
-            self.success = True
+            return map
 
-    def parse_line(self, line: str, index: int) -> None:
+    def parse_line(self, line: str, index: int,
+                   map: dict[str, Any]) -> dict[str, Any]:
         elements = line.strip('\n').split(' ')
         ele_type = elements[0].strip(':')
         match ele_type:
@@ -75,7 +76,7 @@ class Parser:
                     err = "Incorrect format: nb_drones: <x>"
                     self.parsing_error(index, line, err)
                 else:
-                    self.map.update({"drones": elements[1]})
+                    map.update({"drones": elements[1]})
             case "connection":
                 con = {}
                 meta_err = "Incorrect metadata: Duplicate or incorrect Data"
@@ -108,7 +109,7 @@ class Parser:
                         self.parsing_error(index, line, err)
                     else:
                         con.update({"hub_from": loc[0], "hub_to": loc[1]})
-                        self.map["connections"].append(con)
+                        map["connections"].append(con)
             case "hub" | "start_hub" | "end_hub":
                 hub: dict[str, Any] = {}
                 format_err = f"Incorrect format: {elements[0]} <name> <x>" \
@@ -127,11 +128,12 @@ class Parser:
                         hub.update({"end": True})
                     if len(elements) > 4:
                         hub.update(self.parse_meta(elements[4:], line, index))
-                    self.map["hubs"].append(hub)
+                    map["hubs"].append(hub)
             case _:
                 if len(elements) == 1 or elements[0].endswith("\n"):
                     err = "Incorrect format: Single word on line"
                     self.parsing_error(index, line, err)
+        return map
 
     def parse_meta(self, metadata: list[str], line: str,
                    index: int) -> dict[str, str]:
@@ -155,3 +157,10 @@ class Parser:
                 k, v = m.split("=")
                 out.update({k: v})
         return out
+
+
+if __name__ == "__main__":
+    pars = Parser()
+    out = pars.get_dificulty()
+    level = pars.get_maps(out[0] + "/" + out[1][0])
+    print(level)
