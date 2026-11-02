@@ -25,9 +25,10 @@ class Game:
         difficulty = None
         difficulties = self.pars.get_dificulty()
         level = None
-        levels = None
+        levels: Any = None
+        sim = None
         running = True
-        lock = False
+        focus = 0
         i = 0
 
         if len(argv) > 1:
@@ -38,23 +39,58 @@ class Game:
             screen.blit(bg, (0, 0))
 
             if difficulty is None and level is None:
-                self.load_difficulty_select(screen, difficulties)
+                self.load_select(screen, difficulties, focus)
             if difficulty is not None and level is None:
-                self.load_level_select()
+                self.load_select(screen, levels, focus)
+            if level is not None and sim is None:
+                success, out = self.load_map(level)
+                if success:
+                    sim = out
+                else:
+                    self.display_err(screen, out)
 
             for event in pygame.event.get():
                 if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_q:
-                        running = False
-                    if event.key == pygame.K_h:
-                        if level is not None and not lock:
-                            lock = True
-                            level = None
-                        elif difficulty is not None and not lock:
-                            lock = True
-                            difficulty = None
-                if event.type == pygame.KEYUP:
-                    lock = False
+                    match event.key:
+                        case pygame.K_q:
+                            running = False
+                        case pygame.K_h:
+                            if level is not None:
+                                level = None
+                            elif difficulty is not None:
+                                difficulty = None
+                            focus = 0
+                        case pygame.K_j:
+                            if difficulty is None:
+                                if focus < len(difficulties[1]) - 1:
+                                    focus += 1
+                                else:
+                                    focus = 0
+                            else:
+                                if focus < len(levels[1]) - 1:
+                                    focus += 1
+                                else:
+                                    focus = 0
+                        case pygame.K_k:
+                            if difficulty is None:
+                                if focus > 0:
+                                    focus -= 1
+                                else:
+                                    focus = len(difficulties[1]) - 1
+                            else:
+                                if focus > 0:
+                                    focus -= 1
+                                else:
+                                    focus = len(levels[1]) - 1
+                        case pygame.K_l:
+                            if difficulty is None:
+                                difficulty = (difficulties[0]
+                                              + '/' + difficulties[1][focus])
+                                levels = self.pars.get_maps(difficulty)
+                                focus = 0
+                            elif level is None:
+                                level = (levels[0] + '/' + levels[1][focus])
+                                focus = 0
                 if event.type == pygame.QUIT:
                     running = False
             clock.tick(60)
@@ -65,10 +101,10 @@ class Game:
             pygame.display.flip()
         pygame.quit()
 
-    def run_sim(self, sim) -> None:
+    def run_sim(self, sim: Simulation) -> None:
         ...
 
-    def show_instructions(self, screen: pygame.Surface,
+    def show_instructions(self, screen: pygame.surface.Surface,
                           level: str | None) -> None:
         font = pygame.font.Font(None, size=20)
         pygame.draw.line(screen, "white", (0, 1000), (1920, 1000))
@@ -94,19 +130,25 @@ class Game:
                 screen.blit(t, (20 + (int(i / 2) * 80), 1020 + ((i % 2) * 20)))
                 i += 1
 
-    def load_difficulty_select(self, screen: pygame.Surface, difficulties:
-                               tuple[str, list[str]]) -> None:
+    def load_select(self, screen: pygame.surface.Surface, choices:
+                    tuple[str, list[str]], focus: int) -> None:
         fontL = pygame.font.Font(None, size=80)
         fontS = pygame.font.Font(None, size=60)
         texts = []
-        select = fontL.render("Select difficulty:", True, "white")
+        if choices[0].find('/') == -1:
+            select = fontL.render("Select difficulty:", True, "white")
+        else:
+            select = fontL.render("Select level:", True, "white")
         screen.blit(select, (20, 20))
-        for d in difficulties[1]:
-            texts.append(fontS.render(d, True, "white"))
+        for i in range(len(choices[1])):
+            if focus == i:
+                texts.append(fontS.render(choices[1][i], True, "blue"))
+            else:
+                texts.append(fontS.render(choices[1][i], True, "white"))
         for i in range(len(texts)):
             screen.blit(texts[i], (40, 120 + (100 * i)))
 
-    def load_map(self, file: str) -> None:
+    def load_map(self, file: str) -> tuple[bool, Any]:
         try:
             parsed = self.pars.parse_file(file)
             map = Map(**parsed)
@@ -118,13 +160,24 @@ class Game:
             return (False, e)
         except ValueError as e:
             print(e)
+            return (False, e)
         except ValidationError as e:
             print(e)
-        # except RuntimeError as e:
-        #     print(e)
+            return (False, e)
+        except RuntimeError as e:
+            print(e)
+            return (False, e)
         else:
             dist = self.solver.distance
             valid = self.solver.valid
             sim = Simulation(map, path, dist, valid)
             sim.start()
             return (True, sim)
+
+    def display_err(self, screen: pygame.surface.Surface, err: str) -> None:
+        fontL = pygame.font.Font(None, size=80)
+        fontS = pygame.font.Font(None, size=60)
+        select = fontL.render("Error:", True, "white")
+        errmsg = fontS.render(err, True, "white")
+        screen.blit(select, (20, 20))
+        screen.blit(errmsg, (40, 120))
