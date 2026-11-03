@@ -6,6 +6,7 @@ from .map import Map
 from .simulation import Simulation
 from sys import argv
 import pygame
+import random
 
 
 class Game:
@@ -48,6 +49,8 @@ class Game:
                     sim = out
                 else:
                     self.display_err(screen, out)
+            if sim is not None:
+                self.display_sim(screen, sim, i)
 
             for event in pygame.event.get():
                 if event.type == pygame.KEYDOWN:
@@ -59,6 +62,8 @@ class Game:
                                 level = None
                             elif difficulty is not None:
                                 difficulty = None
+                            if sim is not None:
+                                sim = None
                             focus = 0
                         case pygame.K_j:
                             if difficulty is None:
@@ -94,12 +99,39 @@ class Game:
                 if event.type == pygame.QUIT:
                     running = False
             clock.tick(60)
-            # if i % 60 == 0:
-            #     print("run")
-            #     i = 0
             self.show_instructions(screen, level)
             pygame.display.flip()
         pygame.quit()
+
+    def display_sim(self, screen: pygame.surface.Surface,
+                    sim: Simulation, i: int) -> None:
+        hubimg = pygame.image.load("assets/B10.png").convert()
+        if [x.x for x in sim.map.hubs if x.end is True][0] > 20:
+            hubimg = pygame.transform.scale(hubimg,
+                                            (hubimg.get_width() / 3,
+                                             hubimg.get_height() / 3))
+        elif [x.x for x in sim.map.hubs if x.end is True][0] > 10:
+            hubimg = pygame.transform.scale(hubimg,
+                                            (hubimg.get_width() / 2,
+                                             hubimg.get_height() / 2))
+        hubimg.set_colorkey((0, 0, 0))
+        for hub in sim.map.hubs:
+            screen.blit(self.set_color(hubimg, hub.color, i),
+                        (40 + ((hubimg.get_width() + 40) * hub.x),
+                         480 + ((hubimg.get_height() + 40) * hub.y)))
+
+    def set_color(self, img: pygame.surface.Surface,
+                  color: str, i: int) -> pygame.surface.Surface:
+        if color == "rainbow":
+            i = i % 180
+            colors = ["red", "green", "blue"]
+            color = colors[int(i / 60)]
+        imgcpy = pygame.Surface(img.get_size())
+        imgcpy.fill(color)
+        img.set_colorkey("white")
+        imgcpy.set_colorkey((0, 0, 0,))
+        imgcpy.blit(img, (0, 0))
+        return imgcpy
 
     def run_sim(self, sim: Simulation) -> None:
         ...
@@ -156,16 +188,16 @@ class Game:
             self.solver.solve()
             path = self.solver.shortest
         except ParsingError as e:
-            print(e)
+            # print(e)
             return (False, e)
-        except ValueError as e:
-            print(e)
-            return (False, e)
+        # except ValueError as e:
+            # print(e)
+        #     return (False, e)
         except ValidationError as e:
-            print(e)
-            return (False, e)
+            # print(e)
+            return (False, e.errors()[0]['msg'].replace("Value error,", ""))
         except RuntimeError as e:
-            print(e)
+            # print(e)
             return (False, e)
         else:
             dist = self.solver.distance
@@ -178,6 +210,6 @@ class Game:
         fontL = pygame.font.Font(None, size=80)
         fontS = pygame.font.Font(None, size=60)
         select = fontL.render("Error:", True, "white")
-        errmsg = fontS.render(err, True, "white")
+        errmsg = fontS.render(str(err), True, "white")
         screen.blit(select, (20, 20))
         screen.blit(errmsg, (40, 120))
