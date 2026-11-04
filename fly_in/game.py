@@ -6,7 +6,6 @@ from .map import Map
 from .simulation import Simulation
 from sys import argv
 import pygame
-import random
 
 
 class Game:
@@ -106,19 +105,64 @@ class Game:
     def display_sim(self, screen: pygame.surface.Surface,
                     sim: Simulation, i: int) -> None:
         hubimg = pygame.image.load("assets/B10.png").convert()
-        if [x.x for x in sim.map.hubs if x.end is True][0] > 20:
+        min_y = min([x.y for x in sim.map.hubs])
+        max_y = max([x.y for x in sim.map.hubs])
+        max_x = max([x.x for x in sim.map.hubs])
+        diff_y = max_y + min_y / 2 if max_y + min_y != 0 else 0
+        if [x.x for x in sim.map.hubs if x.end is True][0] >= 19:
             hubimg = pygame.transform.scale(hubimg,
                                             (hubimg.get_width() / 3,
                                              hubimg.get_height() / 3))
-        elif [x.x for x in sim.map.hubs if x.end is True][0] > 10:
+        elif [x.x for x in sim.map.hubs if x.end is True][0] >= 9:
             hubimg = pygame.transform.scale(hubimg,
                                             (hubimg.get_width() / 2,
                                              hubimg.get_height() / 2))
+        start_x = (960 - ((hubimg.get_width() * 1.75 * max_x) / 2)
+                   - (hubimg.get_width() / 2))
+        start_y = (500 - (hubimg.get_height() / 2)
+                   - (diff_y * hubimg.get_height()))
         hubimg.set_colorkey((0, 0, 0))
+        hubs = []
         for hub in sim.map.hubs:
-            screen.blit(self.set_color(hubimg, hub.color, i),
-                        (40 + ((hubimg.get_width() + 40) * hub.x),
-                         480 + ((hubimg.get_height() + 40) * hub.y)))
+            pos_x = start_x + ((hubimg.get_width() * 1.75) * hub.x)
+            pos_y = start_y + ((hubimg.get_height() * 1.75) * hub.y)
+            hubs.append((hub, pos_x, pos_y))
+        for con in sim.map.connections:
+            hub_from = [x[0] for x in hubs if x[0].name == con.hub_from][0]
+            hub_to = [x[0] for x in hubs if x[0].name == con.hub_to][0]
+            if hub_from.x == hub_to.x and hub_from.y < hub_to.y:
+                from_pos = [(x[1] + (hubimg.get_width() / 2),
+                             x[2] + hubimg.get_height())
+                            for x in hubs if x[0].name == con.hub_from][0]
+                to_pos = [((x[1] + hubimg.get_height() / 2),
+                           x[2])
+                          for x in hubs if x[0].name == con.hub_to][0]
+            elif hub_from.x == hub_to.x and hub_from.y > hub_to.y:
+                from_pos = [(x[1] + (hubimg.get_width() / 2),
+                             x[2])
+                            for x in hubs if x[0].name == con.hub_from][0]
+                to_pos = [(x[1] + (hubimg.get_height() / 2),
+                           x[2] + hubimg.get_height())
+                          for x in hubs if x[0].name == con.hub_to][0]
+            elif hub_from.x > hub_to.x:
+                from_pos = [(x[1],
+                             x[2] + (hubimg.get_height() / 2))
+                            for x in hubs if x[0].name == con.hub_from][0]
+                to_pos = [(x[1] + hubimg.get_width(),
+                           x[2] + (hubimg.get_height() / 2))
+                          for x in hubs if x[0].name == con.hub_to][0]
+            else:
+                from_pos = [(x[1] + hubimg.get_width(),
+                             x[2] + (hubimg.get_height() / 2))
+                            for x in hubs if x[0].name == con.hub_from][0]
+                to_pos = [(x[1],
+                           x[2] + (hubimg.get_height() / 2))
+                          for x in hubs if x[0].name == con.hub_to][0]
+            pygame.draw.aaline(screen, "cyan", from_pos, to_pos, 2)
+        for h in hubs:
+            screen.blit(self.set_color(hubimg, h[0].color, i), (h[1], h[2]))
+        # for d in sim.map.drones:
+        #     ...
 
     def set_color(self, img: pygame.surface.Surface,
                   color: str, i: int) -> pygame.surface.Surface:
