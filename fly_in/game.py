@@ -2,9 +2,10 @@ from typing import Any
 from .solver import Solver
 from .parsing import Parser, ParsingError
 from pydantic import ValidationError
-from .map import Map
+from .map import Map, Hub, Connection
 from .simulation import Simulation
 from sys import argv
+from math import floor
 import pygame
 
 
@@ -21,6 +22,7 @@ class Game:
         screen = pygame.display.set_mode((1920, 1080))
 
         bg = pygame.image.load("assets/Space_Background2.png").convert()
+        font = pygame.font.Font(None, size=60)
 
         difficulty = None
         difficulties = self.pars.get_dificulty()
@@ -28,6 +30,8 @@ class Game:
         levels: Any = None
         sim = None
         running = True
+        paused = False
+        finished = False
         focus = 0
         i = 0
 
@@ -35,9 +39,13 @@ class Game:
             level = argv[1]
 
         while running:
-            i += 1
+            if not paused:
+                i += 1
             screen.blit(bg, (0, 0))
 
+            if paused:
+                p = font.render("Paused", True, "white")
+                screen.blit(p, (1740, 20))
             if difficulty is None and level is None:
                 self.load_select(screen, difficulties, focus)
             if difficulty is not None and level is None:
@@ -50,6 +58,11 @@ class Game:
                     self.display_err(screen, out)
             if sim is not None:
                 self.display_sim(screen, sim, i)
+                if i % 120 == 0 and not sim.map_completed():
+                    sim.turn()
+                if not finished and sim.map_completed():
+                    print(f"\nTurns: {sim.turns}")
+                    finished = True
 
             for event in pygame.event.get():
                 if event.type == pygame.KEYDOWN:
@@ -63,6 +76,7 @@ class Game:
                                 difficulty = None
                             if sim is not None:
                                 sim = None
+                                finished = False
                             focus = 0
                         case pygame.K_j:
                             if difficulty is None:
@@ -95,6 +109,14 @@ class Game:
                             elif level is None:
                                 level = (levels[0] + '/' + levels[1][focus])
                                 focus = 0
+                        case pygame.K_p:
+                            if not paused:
+                                paused = True
+                            else:
+                                paused = False
+                        case pygame.K_t:
+                            if sim is not None and not sim.map_completed():
+                                sim.turn()
                 if event.type == pygame.QUIT:
                     running = False
             clock.tick(60)
@@ -104,6 +126,9 @@ class Game:
 
     def display_sim(self, screen: pygame.surface.Surface,
                     sim: Simulation, i: int) -> None:
+        font = pygame.font.Font(None, size=60)
+        turns = font.render(f"Turn: {sim.turns}", True, "White")
+        screen.blit(turns, (20, 20))
         hubimg = pygame.image.load("assets/B10.png").convert()
         min_y = min([x.y for x in sim.map.hubs])
         max_y = max([x.y for x in sim.map.hubs])
@@ -161,8 +186,47 @@ class Game:
             pygame.draw.aaline(screen, "cyan", from_pos, to_pos, 2)
         for h in hubs:
             screen.blit(self.set_color(hubimg, h[0].color, i), (h[1], h[2]))
-        # for d in sim.map.drones:
-        #     ...
+        self.display_drones(screen, sim, hubs, hubimg.get_size())
+
+    def display_drones(self, screen: pygame.surface.Surface, sim: Simulation,
+                       hubs: list[Any], size: tuple[int, int]) -> None:
+        droneimg = pygame.image.load("assets/Drone.png")
+        droneimg = pygame.transform.scale(droneimg, (size[0] / 2, size[1] / 2))
+        droneimg = pygame.transform.rotate(droneimg, 270)
+        font = pygame.font.Font(None, size=20)
+        pos = {}
+        for d in sim.drones:
+            d_name = font.render(f"[{d.name}]", True, "White")
+            if (type(d.location) is Hub and not d.location.end
+                    and not d.location.start):
+                if d.location.name not in pos.keys():
+                    pos.update({d.location.name: 0})
+                else:
+                    pos[d.location.name] += 1
+                hub = [x for x in hubs if x[0] == d.location][0]
+                posx = hub[1]
+                posy = hub[2]
+                offsetx = (droneimg.get_height()
+                           * floor(pos[d.location.name] / 2))
+                offsety = ((droneimg.get_width() + 20)
+                           * (pos[d.location.name] % 2))
+                screen.blit(droneimg, (posx + offsetx, posy + offsety))
+                screen.blit(d_name, (posx + offsetx, posy + offsety - 20))
+            if type(d.location) is Connection:
+                hub_from = [x for x in hubs
+                            if x[0].name == d.location.hub_from][0]
+                hub_to = [x for x in hubs if x[0].name == d.location.hub_to][0]
+                posx1 = hub_from[1]
+                posx2 = hub_to[1]
+                posy1 = hub_from[2]
+                posy2 = hub_to[2]
+                if posx1 < posx2:
+                    posx = posx2 - ((posx2 - posx1 - (size[0] / 2)) / 2)
+                else:
+                    posx = posx2 - ((posx1 - posx2 - (size[0] / 2)) / 2)
+                posy = posy2 - ((posy2 - posy1 - (size[1] / 2)) / 2)
+                screen.blit(droneimg, (posx, posy))
+                screen.blit(d_name, (posx, posy - 20))
 
     def set_color(self, img: pygame.surface.Surface,
                   color: str, i: int) -> pygame.surface.Surface:
@@ -176,9 +240,6 @@ class Game:
         imgcpy.set_colorkey((0, 0, 0,))
         imgcpy.blit(img, (0, 0))
         return imgcpy
-
-    def run_sim(self, sim: Simulation) -> None:
-        ...
 
     def show_instructions(self, screen: pygame.surface.Surface,
                           level: str | None) -> None:
@@ -232,22 +293,16 @@ class Game:
             self.solver.solve()
             path = self.solver.shortest
         except ParsingError as e:
-            # print(e)
             return (False, e)
-        # except ValueError as e:
-            # print(e)
-        #     return (False, e)
         except ValidationError as e:
-            # print(e)
             return (False, e.errors()[0]['msg'].replace("Value error,", ""))
         except RuntimeError as e:
-            # print(e)
             return (False, e)
         else:
             dist = self.solver.distance
             valid = self.solver.valid
             sim = Simulation(map, path, dist, valid)
-            sim.start()
+            # sim.start()
             return (True, sim)
 
     def display_err(self, screen: pygame.surface.Surface, err: str) -> None:
