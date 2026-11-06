@@ -110,10 +110,16 @@ class Simulation:
     def turn(self) -> None:
         self.turns += 1
         d = self.get_farthest()
+        moved = False
         while d is not None:
             if d.move(self.map):
+                moved = True
                 print(f"{d.name}-{d.location.get_name()}", end=' ')
             d = self.get_farthest()
+            if len([x for x in self.drones if x.blocked]) > 0 and moved:
+                moved = False
+                self.reset_blocked()
+                d = self.get_farthest()
         self.turn_reset()
         print()
 
@@ -123,6 +129,10 @@ class Simulation:
             d.blocked = False
         for c in self.map.connections:
             c.used = 0
+
+    def reset_blocked(self) -> None:
+        for d in self.drones:
+            d.blocked = False
 
     def map_completed(self) -> bool:
         for d in self.drones:

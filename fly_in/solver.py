@@ -89,4 +89,7 @@ class Solver:
         for name in q:
             if distance[name] < distance[smallest]:
                 smallest = name
-        return smallest
+        if smallest in q:
+            return smallest
+        else:
+            return q[0]

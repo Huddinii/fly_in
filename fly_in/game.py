@@ -46,9 +46,9 @@ class Game:
             if paused:
                 p = font.render("Paused", True, "white")
                 screen.blit(p, (1740, 20))
-            if difficulty is None and level is None:
+            if difficulty is None and level is None and len(difficulties) > 0:
                 self.load_select(screen, difficulties, focus)
-            if difficulty is not None and level is None:
+            if difficulty is not None and level is None and len(levels) > 0:
                 self.load_select(screen, levels, focus)
             if level is not None and sim is None:
                 success, out = self.load_map(level)
@@ -65,60 +65,72 @@ class Game:
                     finished = True
 
             for event in pygame.event.get():
-                if event.type == pygame.KEYDOWN:
-                    match event.key:
-                        case pygame.K_q:
-                            running = False
-                        case pygame.K_h:
-                            if level is not None:
-                                level = None
-                            elif difficulty is not None:
-                                difficulty = None
-                            if sim is not None:
-                                sim = None
-                                finished = False
-                            focus = 0
-                        case pygame.K_j:
-                            if difficulty is None:
-                                if focus < len(difficulties[1]) - 1:
-                                    focus += 1
-                                else:
-                                    focus = 0
-                            else:
-                                if focus < len(levels[1]) - 1:
-                                    focus += 1
-                                else:
-                                    focus = 0
-                        case pygame.K_k:
-                            if difficulty is None:
-                                if focus > 0:
-                                    focus -= 1
-                                else:
-                                    focus = len(difficulties[1]) - 1
-                            else:
-                                if focus > 0:
-                                    focus -= 1
-                                else:
-                                    focus = len(levels[1]) - 1
-                        case pygame.K_l:
-                            if difficulty is None:
-                                difficulty = (difficulties[0]
-                                              + '/' + difficulties[1][focus])
-                                levels = self.pars.get_maps(difficulty)
+                match event.type:
+                    case pygame.KEYDOWN:
+                        match event.key:
+                            case pygame.K_q:
+                                running = False
+                            case pygame.K_h:
+                                if level is not None:
+                                    level = None
+                                elif difficulty is not None:
+                                    difficulty = None
+                                if sim is not None:
+                                    sim = None
+                                    finished = False
                                 focus = 0
-                            elif level is None:
-                                level = (levels[0] + '/' + levels[1][focus])
-                                focus = 0
-                        case pygame.K_p:
-                            if not paused:
-                                paused = True
-                            else:
-                                paused = False
-                        case pygame.K_t:
-                            if sim is not None and not sim.map_completed():
-                                sim.turn()
-                if event.type == pygame.QUIT:
-                    running = False
+                            case pygame.K_j:
+                                if difficulty is None:
+                                    if (len(difficulties) > 0 and
+                                            focus < len(difficulties[1]) - 1):
+                                        focus += 1
+                                    else:
+                                        focus = 0
+                                else:
+                                    if (len(levels) > 0 and
+                                            focus < len(levels[1]) - 1):
+                                        focus += 1
+                                    else:
+                                        focus = 0
+                            case pygame.K_k:
+                                if difficulty is None:
+                                    if focus > 0:
+                                        focus -= 1
+                                    else:
+                                        if (len(difficulties) > 0 and
+                                                len(difficulties[1]) > 0):
+                                            focus = len(difficulties[1]) - 1
+                                else:
+                                    if focus > 0:
+                                        focus -= 1
+                                    else:
+                                        if (len(levels) > 0 and
+                                                len(levels[1]) > 0):
+                                            focus = len(levels[1]) - 1
+                            case pygame.K_l:
+                                if (difficulty is None
+                                    and len(difficulties) > 0
+                                        and len(difficulties[1]) > 0):
+                                    difficulty = (difficulties[0] + '/' +
+                                                  difficulties[1][focus])
+                                    levels = self.pars.get_maps(difficulty)
+                                    focus = 0
+                                elif (level is None and levels is not None
+                                      and len(levels) > 0
+                                      and len(levels[1]) > 0):
+                                    level = (levels[0] + '/' +
+                                             levels[1][focus])
+                                    focus = 0
+                            case pygame.K_p:
+                                if not paused:
+                                    paused = True
+                                else:
+                                    paused = False
+                            case pygame.K_t:
+                                if sim is not None and not sim.map_completed():
+                                    sim.turn()
+                    case pygame.QUIT:
+                        running = False
             clock.tick(60)
             self.show_instructions(screen, level)
             pygame.display.flip()
@@ -194,7 +206,7 @@ class Game:
         droneimg = pygame.transform.scale(droneimg, (size[0] / 2, size[1] / 2))
         droneimg = pygame.transform.rotate(droneimg, 270)
         font = pygame.font.Font(None, size=20)
-        pos = {}
+        pos: dict[str, int] = {}
         for d in sim.drones:
             d_name = font.render(f"[{d.name}]", True, "White")
             if (type(d.location) is Hub and not d.location.end
@@ -220,22 +232,23 @@ class Game:
                 posx2 = hub_to[1]
                 posy1 = hub_from[2]
                 posy2 = hub_to[2]
-                if posx1 < posx2:
-                    posx = posx2 - ((posx2 - posx1 - (size[0] / 2)) / 2)
-                else:
-                    posx = posx2 - ((posx1 - posx2 - (size[0] / 2)) / 2)
+                posx = posx2 - ((posx2 - posx1 - (size[0] / 2)) / 2)
                 posy = posy2 - ((posy2 - posy1 - (size[1] / 2)) / 2)
                 screen.blit(droneimg, (posx, posy))
                 screen.blit(d_name, (posx, posy - 20))
 
     def set_color(self, img: pygame.surface.Surface,
-                  color: str, i: int) -> pygame.surface.Surface:
+                  color: str | None, i: int) -> pygame.surface.Surface:
         if color == "rainbow":
             i = i % 180
             colors = ["red", "green", "blue"]
             color = colors[int(i / 60)]
         imgcpy = pygame.Surface(img.get_size())
-        imgcpy.fill(color)
+        try:
+            if color is not None:
+                imgcpy.fill(color)
+        except ValueError:
+            imgcpy.fill("white")
         img.set_colorkey("white")
         imgcpy.set_colorkey((0, 0, 0,))
         imgcpy.blit(img, (0, 0))
@@ -302,7 +315,6 @@ class Game:
             dist = self.solver.distance
             valid = self.solver.valid
             sim = Simulation(map, path, dist, valid)
-            # sim.start()
             return (True, sim)
 
     def display_err(self, screen: pygame.surface.Surface, err: str) -> None:

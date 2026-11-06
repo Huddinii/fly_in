@@ -20,15 +20,19 @@ class Parser:
     def __init__(self) -> None:
         self.parsing_error: Any = None
 
-    def get_dificulty(self) -> tuple[str, list[str]]:
-        out = [(s, d) for s, d, _ in os.walk("maps")][0]
-        out[1].sort()
-        return out
+    def get_dificulty(self) -> tuple[str, list[Any]]:
+        out = [(s, d) for s, d, _ in os.walk("maps")]
+        if len(out) > 0:
+            out[0][1].sort()
+            return out[0]
+        return ("", [])
 
-    def get_maps(self, dif: str) -> tuple[str, list[str]]:
-        out = [(s, f) for s, _, f in os.walk(dif)][0]
-        out[1].sort()
-        return out
+    def get_maps(self, dif: str) -> tuple[str, list[Any]]:
+        out = [(s, f) for s, _, f in os.walk(dif)]
+        if len(out) > 0:
+            out[0][1].sort()
+            return out[0]
+        return ("", [])
 
     def parse_file(self, file: str) -> dict[str, Any]:
         self.parsing_error = ParsingError()
@@ -157,10 +161,3 @@ class Parser:
                 k, v = m.split("=")
                 out.update({k: v})
         return out
-
-
-if __name__ == "__main__":
-    pars = Parser()
-    out = pars.get_dificulty()
-    level = pars.get_maps(out[0] + "/" + out[1][0])
-    print(level)
