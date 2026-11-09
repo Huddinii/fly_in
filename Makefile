@@ -9,8 +9,8 @@ debug: install
 	@uv run -m pdb -m fly_in $(MAP)
 
 clean:
-	rm  -rf .mypy_cache
-	rm -rf fly_in/__pycache__
+	@rm -rf .mypy_cache
+	@rm -rf fly_in/__pycache__
 
 lint: install
 	@uv run flake8 . --exclude .venv

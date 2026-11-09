@@ -311,6 +311,12 @@ class Game:
             return (False, e.errors()[0]['msg'].replace("Value error,", ""))
         except RuntimeError as e:
             return (False, e)
+        except FileNotFoundError as e:
+            return (False, e)
+        except PermissionError as e:
+            return (False, e)
+        except IsADirectoryError as e:
+            return (False, e)
         else:
             dist = self.solver.distance
             valid = self.solver.valid
