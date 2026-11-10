@@ -17,7 +17,7 @@ class Hub(BaseModel):
     start: bool = False
     end: bool = False
     color: str | None = Field(default=None, pattern=r"^[a-zA-Z]+$")
-    max_drones: int = 1
+    max_drones: int = Field(default=1, gt=0)
     zone: Zone = Zone.NORMAL
     drones: int = 0
 
@@ -28,7 +28,7 @@ class Hub(BaseModel):
 class Connection(BaseModel):
     hub_from: str
     hub_to: str
-    capacity: int = 1
+    capacity: int = Field(default=1, gt=0)
     used: int = 0
     traveling: list[Any] = []
 
@@ -37,7 +37,7 @@ class Connection(BaseModel):
 
 
 class Map(BaseModel):
-    drones: int
+    drones: int = Field(gt=0)
     hubs: list[Hub]
     connections: list[Connection]
 
@@ -46,11 +46,7 @@ class Map(BaseModel):
         hub_names = [x.name for x in self.hubs]
         if len(hub_names) != len(set(hub_names)):
             raise ValueError("Invalid Hub: Multiple Hubs with same Name")
-        for c in self.connections:
-            if (c.hub_from not in hub_names
-                    or c.hub_to not in hub_names):
-                raise ValueError(f"Invalid Connection {c}:"
-                                 " Trying to connect non existent Hub")
+        self.validate_cons(hub_names)
         start, end = False, False
         for h in self.hubs:
             if h.start:
@@ -73,6 +69,26 @@ class Map(BaseModel):
                     raise ValueError("Multiple Hubs with same coordinates:"
                                      f" x = {x}, y = {y}")
         return self
+
+    def validate_cons(self, hub_names: list[str]) -> None:
+        for c in self.connections:
+            if (c.hub_from not in hub_names
+                    or c.hub_to not in hub_names):
+                raise ValueError(f"Invalid Connection {c.get_name()}:"
+                                 " Trying to connect non existent Hub")
+            if (c.hub_from == c.hub_to):
+                raise ValueError(f"Invalid Connection {c.get_name()}:"
+                                 " Trying to connect to itself")
+            for con in self.connections[self.connections.index(c) + 1:
+                                        len(self.connections)]:
+                if c.hub_from == con.hub_from and c.hub_to == con.hub_to:
+                    raise ValueError(f"Invalid Connection {con.get_name()}:"
+                                     f" Duplicate Connection {c.get_name()}"
+                                     " found")
+                if c.hub_from == con.hub_to and c.hub_to == con.hub_from:
+                    raise ValueError(f"Invalid Connection {con.get_name()}:"
+                                     f" Duplicate Connection {c.get_name()}"
+                                     " found")
 
     def get_start(self) -> Hub:
         return [h for h in self.hubs if h.start][0]
