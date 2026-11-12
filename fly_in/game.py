@@ -10,11 +10,15 @@ import pygame
 
 
 class Game:
+    """Responsible for displaying the UI."""
+
     def __init__(self) -> None:
+        """Initializes the class"""
         self.pars: Parser = Parser()
         self.solver: Any = None
 
     def start_game(self) -> None:
+        """The game loop, responsible for the Game logic."""
         pygame.init()
         pygame.display.set_caption("Fly In")
 
@@ -138,6 +142,7 @@ class Game:
 
     def display_sim(self, screen: pygame.surface.Surface,
                     sim: Simulation, i: int) -> None:
+        """Displays the simulation on the screen."""
         font = pygame.font.Font(None, size=60)
         turns = font.render(f"Turn: {sim.turns}", True, "White")
         screen.blit(turns, (20, 20))
@@ -202,6 +207,7 @@ class Game:
 
     def display_drones(self, screen: pygame.surface.Surface, sim: Simulation,
                        hubs: list[Any], size: tuple[int, int]) -> None:
+        """Displays the current position of the drones on the screen."""
         droneimg = pygame.image.load("assets/Drone.png")
         droneimg = pygame.transform.scale(droneimg, (size[0] / 2, size[1] / 2))
         droneimg = pygame.transform.rotate(droneimg, 270)
@@ -239,6 +245,7 @@ class Game:
 
     def set_color(self, img: pygame.surface.Surface,
                   color: str | None, i: int) -> pygame.surface.Surface:
+        """Performs a color swap to the image passed in."""
         if color == "rainbow":
             i = i % 180
             colors = ["red", "green", "blue"]
@@ -256,6 +263,7 @@ class Game:
 
     def show_instructions(self, screen: pygame.surface.Surface,
                           level: str | None) -> None:
+        """Displays the Controlls of the UI at the bottom of the screen."""
         font = pygame.font.Font(None, size=20)
         pygame.draw.line(screen, "white", (0, 1000), (1920, 1000))
         if level is None:
@@ -282,6 +290,7 @@ class Game:
 
     def load_select(self, screen: pygame.surface.Surface, choices:
                     tuple[str, list[str]], focus: int) -> None:
+        """Displays the difficulty and level select."""
         fontL = pygame.font.Font(None, size=80)
         fontS = pygame.font.Font(None, size=60)
         texts = []
@@ -299,6 +308,7 @@ class Game:
             screen.blit(texts[i], (40, 120 + (100 * i)))
 
     def load_map(self, file: str) -> tuple[bool, Any]:
+        """Tries to Parse the selected map and returns the Simulation."""
         try:
             parsed = self.pars.parse_file(file)
             map = Map(**parsed)
@@ -324,6 +334,7 @@ class Game:
             return (True, sim)
 
     def display_err(self, screen: pygame.surface.Surface, err: str) -> None:
+        """Displays errors on the screen."""
         fontL = pygame.font.Font(None, size=80)
         fontS = pygame.font.Font(None, size=60)
         select = fontL.render("Error:", True, "white")

@@ -3,13 +3,18 @@ from typing import Any
 
 
 class ParsingError(Exception):
+    """A Parsing Error Class that allows outputing Multiple Errors."""
+
     def __init__(self) -> None:
+        """Initializes the Class."""
         self.errors: list[tuple[int, str, str]] = []
 
     def __call__(self, line_nr: int, line: str, msg: str) -> None:
+        """Appends an Error to the Error list."""
         self.errors.append((line_nr, line, msg))
 
     def __str__(self) -> str:
+        """Turns the Error list into a string."""
         out = ""
         for e in self.errors:
             out += f"Error in line {e[0]}:\n{e[1]}{e[2]}\n"
@@ -17,10 +22,14 @@ class ParsingError(Exception):
 
 
 class Parser:
+    """A Parsing Class for the maps directory and map files."""
+
     def __init__(self) -> None:
+        """Initializes the Class."""
         self.parsing_error: Any = None
 
     def get_dificulty(self) -> tuple[str, list[Any]]:
+        """Returns the difficulty options in a sorted list."""
         out = [(s, d) for s, d, _ in os.walk("maps")]
         if len(out) > 0:
             out[0][1].sort()
@@ -28,6 +37,7 @@ class Parser:
         return ("", [])
 
     def get_maps(self, dif: str) -> tuple[str, list[Any]]:
+        """Returns the maps that are available with the selected difficulty."""
         out = [(s, f) for s, _, f in os.walk(dif)]
         if len(out) > 0:
             out[0][1].sort()
@@ -35,6 +45,7 @@ class Parser:
         return ("", [])
 
     def parse_file(self, file: str) -> dict[str, Any]:
+        """Parses the File and tests if the start of the line is valid."""
         self.parsing_error = ParsingError()
         with open(file) as f:
             map: dict[str, Any] = {"hubs": [], "connections": []}
@@ -72,6 +83,7 @@ class Parser:
 
     def parse_line(self, line: str, index: int,
                    map: dict[str, Any]) -> dict[str, Any]:
+        """Parses a single line and tests if the line is valid."""
         elements = line.strip('\n').split(' ')
         ele_type = elements[0].strip(':')
         match ele_type:
@@ -141,6 +153,7 @@ class Parser:
 
     def parse_meta(self, metadata: list[str], line: str,
                    index: int) -> dict[str, str]:
+        """Parses Hub Metadata."""
         allowed = ("zone", "color", "max_drones")
         out = {}
         metadata[0] = metadata[0].strip('[')

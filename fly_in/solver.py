@@ -3,12 +3,15 @@ from typing import Any
 
 
 class Node:
+    """A linked list Node."""
     parent: Any = None
 
     def __init__(self, name: str) -> None:
+        """Initializes the class."""
         self.name = name
 
     def check_valid(self, name: str) -> bool:
+        """Check if an Input is valid."""
         par = self.parent
         while par is not None:
             if name == par.name:
@@ -18,8 +21,10 @@ class Node:
 
 
 class Solver:
+    """A solver class for finding a path through a map."""
 
     def __init__(self, map: Map) -> None:
+        """Initializes the class."""
         self.map = map
         self.solutions: list[Node] = []
         self.valid: set[str] = set()
@@ -27,6 +32,7 @@ class Solver:
         self.shortest: list[str] = []
 
     def bfs(self) -> None:
+        """Breadth first search algorithm to find valid Hubs."""
         hubs = []
         start = Node(self.map.get_start().name)
         hubs.append(start)
@@ -47,6 +53,7 @@ class Solver:
                 s = s.parent
 
     def dijkstra(self) -> None:
+        """dijkstra algorithm to find the shortest path through the map."""
         parent: dict[str, str | None] = {}
         q = []
         for h in self.valid:
@@ -62,11 +69,11 @@ class Solver:
                     z = self.map.get_zone(hub)
                     match z:
                         case Zone.RESTRICTED:
-                            dist = 5
+                            dist = 7
                         case Zone.NORMAL:
-                            dist = 3
+                            dist = 4
                         case Zone.PRIORITY:
-                            dist = 1
+                            dist = 3
                     length = self.distance[cur] + dist
                     if length < self.distance[hub]:
                         self.distance[hub] = length
@@ -79,12 +86,14 @@ class Solver:
         self.shortest.reverse()
 
     def solve(self) -> None:
+        """Runs both algorithms and raises an Error when there is no path."""
         self.bfs()
         if len(self.solutions) == 0:
             raise RuntimeError("No valid Path found")
         self.dijkstra()
 
     def get_smallest(self, distance: dict[str, int], q: list[str]) -> str:
+        """Returns the hub with the shortest distance left in the queue."""
         smallest = max(distance, key=lambda name: distance[name])
         for name in q:
             if distance[name] < distance[smallest]:

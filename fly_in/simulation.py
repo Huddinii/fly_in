@@ -3,32 +3,39 @@ from typing import Any
 
 
 class Drone:
+    """A Drone class that moves through a map."""
     moved: bool = False
     blocked: bool = False
     traveling: bool = False
     clear: bool = False
 
     def __init__(self, name: str, location: Any) -> None:
+        """Initializes the class."""
         self.name = name
         self.location = location
         self.valid: set[str] = set()
         self.distance: dict[str, int]
 
     def set_valid(self, valid: set[str]) -> None:
+        """Adds the passed set to the valid parameter."""
         self.valid = self.valid | valid
 
     def set_distance(self, distance: dict[str, int]) -> None:
+        """Set the distance dictionary."""
         self.distance = distance
 
     def set_shortest(self, shortest: list[str]) -> None:
+        """Set the shortest path."""
         self.shortest = shortest
 
     def check_available(self, map: Map) -> bool:
+        """Check if Drone movement is still possible."""
         if self.traveling or self.clear or self.blocked or self.moved:
             return False
         return True
 
     def move(self, map: Map) -> bool:
+        """Move the Drone to a connected Hub if possible."""
         if self.traveling:
             self.traveling = False
             self.location.used -= 1
@@ -89,10 +96,12 @@ class Drone:
 
 
 class Simulation:
+    """Class for Simulating movement through a map."""
     turns: int = 0
 
     def __init__(self, map: Map, shortest: list[str],
                  distance: dict[str, int], valid: set[str]) -> None:
+        """Initializes the class."""
         self.drones = [Drone(f"D{x}", map.get_start())
                        for x in range(1, map.drones + 1)]
         self.map = map
@@ -103,11 +112,13 @@ class Simulation:
             d.set_shortest(shortest)
 
     def start(self) -> None:
+        """Runs the full simulation and outputs it to the terminal."""
         while not self.map_completed():
             self.turn()
         print(f"\nTurns: {self.turns}")
 
     def turn(self) -> None:
+        """Take one turn in the simulation."""
         self.turns += 1
         d = self.get_farthest()
         moved = False
@@ -124,6 +135,7 @@ class Simulation:
         print()
 
     def turn_reset(self) -> None:
+        """Reset the drones and connections after the turn is completed."""
         for d in self.drones:
             d.moved = False
             d.blocked = False
@@ -131,22 +143,26 @@ class Simulation:
             c.used = 0
 
     def reset_blocked(self) -> None:
+        """Reset all blocked drones."""
         for d in self.drones:
             d.blocked = False
 
     def map_completed(self) -> bool:
+        """Check if the map is completed."""
         for d in self.drones:
             if d.clear is False:
                 return False
         return True
 
     def turn_completed(self) -> bool:
+        """Check if a turn is completed."""
         for d in self.drones:
             if d.moved is False:
                 return False
         return True
 
     def get_farthest(self) -> Drone | None:
+        """Get the Drone that is the farthest in the map."""
         dist = -1
         drone = None
         for d in self.drones:

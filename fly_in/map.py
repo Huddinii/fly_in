@@ -4,6 +4,7 @@ from typing import Any
 
 
 class Zone(Enum):
+    """An enum of the possible hub Zone types."""
     NORMAL = 'normal'
     BLOCKED = 'blocked'
     RESTRICTED = 'restricted'
@@ -11,6 +12,7 @@ class Zone(Enum):
 
 
 class Hub(BaseModel):
+    """Hub Model."""
     name: str = Field(pattern=r"^[a-zA-Z0-9_]+$")
     x: int
     y: int
@@ -22,10 +24,12 @@ class Hub(BaseModel):
     drones: int = 0
 
     def get_name(self) -> str:
+        """Returns the name of the Hub."""
         return self.name
 
 
 class Connection(BaseModel):
+    """Connection Model."""
     hub_from: str
     hub_to: str
     capacity: int = Field(default=1, gt=0)
@@ -33,16 +37,19 @@ class Connection(BaseModel):
     traveling: list[Any] = []
 
     def get_name(self) -> str:
+        """Returns the name of the Connection."""
         return f"Con_{self.hub_from}-{self.hub_to}"
 
 
 class Map(BaseModel):
+    """Map Model."""
     drones: int = Field(gt=0)
     hubs: list[Hub]
     connections: list[Connection]
 
     @model_validator(mode='after')
     def map_validator(self) -> "Map":
+        """Validates the Map Model for Errors."""
         hub_names = [x.name for x in self.hubs]
         if len(hub_names) != len(set(hub_names)):
             raise ValueError("Invalid Hub: Multiple Hubs with same Name")
@@ -71,6 +78,7 @@ class Map(BaseModel):
         return self
 
     def validate_cons(self, hub_names: list[str]) -> None:
+        """Validates Connections for Errors."""
         for c in self.connections:
             if (c.hub_from not in hub_names
                     or c.hub_to not in hub_names):
@@ -91,15 +99,19 @@ class Map(BaseModel):
                                      " found")
 
     def get_start(self) -> Hub:
+        """Returns the Start Hub."""
         return [h for h in self.hubs if h.start][0]
 
     def get_end(self) -> Hub:
+        """Returns the End Hub."""
         return [h for h in self.hubs if h.end][0]
 
     def get_connected(self, name: str) -> list[str]:
+        """Returns all Hubs Connected to the hub passed by name."""
         return [x.hub_to for x in self.connections if x.hub_from == name]
 
     def is_blocked(self, name: str) -> bool:
+        """Tests if the Zone is blocked."""
         for h in self.hubs:
             if h.name == name:
                 if h.zone == Zone.BLOCKED:
@@ -107,16 +119,20 @@ class Map(BaseModel):
         return False
 
     def get_zone(self, name: str) -> Zone:
+        """Returns the zone of the hub passed by name."""
         return [h.zone for h in self.hubs if h.name == name][0]
 
     def get_hub(self, name: str) -> Hub:
+        """Returns the hub Class from the passed Hub name."""
         return [h for h in self.hubs if h.name == name][0]
 
     def get_connection(self, hub_from: str, hub_to: str) -> Connection:
+        """Returns a Connection from the two passed hubs."""
         return [c for c in self.connections
                 if c.hub_from == hub_from and c.hub_to == hub_to][0]
 
     def has_space(self, hub: Hub) -> bool:
+        """Tests if the Hub still has free space available."""
         cons = [x for x in self.connections if x.hub_to == hub.name]
         traveling = 0
         for c in cons:
